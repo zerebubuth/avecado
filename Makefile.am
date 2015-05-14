@@ -74,6 +74,7 @@ libavecado_la_SOURCES = \
 	src/fetcher_io.cpp \
 	src/fetch/overzoom.cpp \
 	src/fetch/http.cpp \
+	src/fetch/cache.cpp \
 	src/fetch/http_date_parser.cpp \
 	src/tilejson.cpp \
 	src/util.cpp \
