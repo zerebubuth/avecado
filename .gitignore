@@ -65,3 +65,8 @@ test/*.trs
 *.gcda
 coverage.info
 coverage/
+
+# generated files from clipper/mapnik
+include/clipper.hpp
+include/clipper.cpp
+src/fix_members.sh
