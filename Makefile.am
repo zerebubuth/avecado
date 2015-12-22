@@ -64,7 +64,7 @@ src/vector_tile.pb.cc: include/vector_tile.pb.h
 include/vector_tile.pb.h: mapnik-vector-tile/proto/vector_tile.proto
 	@PROTOC_BIN@ -Imapnik-vector-tile/proto --cpp_out=src $< && mv src/vector_tile.pb.h include/
 
-src/clipper.cpp: deps/clipper/cpp/clipper.hpp deps/clipper/cpp/clipper.hpp deps/clipper/cpp/fix_members.sh
+src/clipper.cpp: deps/clipper/cpp/clipper.hpp deps/clipper/cpp/clipper.cpp deps/clipper/cpp/fix_members.sh
 	cp $^ src/ && bash src/fix_members.sh
 
 include/clipper.hpp: src/clipper.cpp
