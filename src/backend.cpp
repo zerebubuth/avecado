@@ -1,6 +1,12 @@
 #include "backend.hpp"
 #include "post_processor.hpp"
 
+namespace {
+
+mapnik::geometry::geometry<std::int64_t> quantize(const mapnik::geometry::geometry<double> &);
+
+} // anonymous namespace
+
 namespace avecado {
 
 backend::backend(vector_tile::Tile & tile,
@@ -31,11 +37,12 @@ void backend::stop_tile_layer() {
       m_pbf.add_tile_feature_raster(*m_current_image_buffer);
       m_current_image_buffer.reset();
     }
-    for (size_t i = 0; i < feature->num_geometries(); i++) {
-      mapnik::vertex_adapter path(feature->get_geometry(i));
-      // See hack note about tolerance below in add_path(...)
-      m_pbf.add_path(path, m_tolerance, path.type());
-    }
+
+    // TODO: this doesn't work because add_path needs the concrete type of the
+    // geometry, which is hidden behind the geometry variant when extracted
+    // from the feature.
+    m_pbf.add_path(quantize(feature->get_geometry()));
+
     m_pbf.stop_tile_feature();
   }
   m_pbf.stop_tile_layer();
@@ -58,7 +65,9 @@ void backend::start_tile_feature(mapnik::feature_impl const& feature) {
 }
 
 void backend::stop_tile_feature() {
-  if (m_current_feature && m_current_feature->num_geometries() > 0) {
+  if (m_current_feature && m_current_geometry_collection.size() > 0) {
+    m_current_feature->set_geometry_copy(m_current_geometry_collection);
+    m_current_geometry_collection.clear();
     m_current_layer_features.push_back(m_current_feature);
   }
   m_current_feature.reset();

@@ -6,6 +6,7 @@
 #include <mapnik/value_types.hpp>
 #include <mapnik/vertex.hpp>
 #include <mapnik/map.hpp>
+#include <mapnik/path.hpp>
 
 // vector tile
 #include "vector_tile_backend_pbf.hpp"
@@ -17,12 +18,22 @@ namespace avecado {
 
 class post_processor;
 
+namespace detail {
+struct fake_feature {
+  inline void set_type(::vector_tile::Tile_GeomType value) { m_type = value; }
+  fake_feature *operator->() { return this; }
+  ::vector_tile::Tile_GeomType m_type;
+};
+}
+
 class backend {
 public:
   backend(vector_tile::Tile & tile,
           unsigned path_multiplier,
           mapnik::Map const& map,
           boost::optional<const post_processor &> pp);
+
+  inline unsigned get_path_multiplier() { return m_pbf.get_path_multiplier(); }
 
   void start_tile_layer(std::string const& name);
 
@@ -35,24 +46,13 @@ public:
   void add_tile_feature_raster(std::string const& image_buffer);
 
   template <typename T>
-  inline unsigned add_path(T & path, unsigned tolerance, mapnik::geometry_type::types type) {
-    mapnik::geometry_type * geom = new mapnik::geometry_type(type);
-    double x, y;
-    unsigned command, count = 0;
-    path.rewind(0);
-    while ((command = path.vertex(&x, &y)) != mapnik::SEG_END) {
-      geom->push_vertex(x, y, (mapnik::CommandType)command);
-      count++;
-    }
-    m_current_feature->add_geometry(geom);
-    // TODO: This is just modifying a member variable for each add_path call,
-    //       which will then be used at the end of the layer for writing all
-    //       paths into protobuf. It works for now, because vector_tile_processor
-    //       uses the same tolerance value throughout the whole tile, but this
-    //       is still a hack way of doing it...
-    m_tolerance = tolerance;
-    return count;
+  inline unsigned add_path(const T &path) {
+    m_current_geometry_collection.push_back(path);
+    return 1;
   }
+
+  // yuck - but needed for compatibility?
+  detail::fake_feature current_feature_;
 
 private:
   mapnik::vector_tile_impl::backend_pbf m_pbf;
@@ -61,6 +61,7 @@ private:
   boost::optional<const post_processor &> m_post_processor;
   std::string m_current_layer_name;
   std::vector<mapnik::feature_ptr> m_current_layer_features;
+  mapnik::geometry::geometry_collection<std::int64_t> m_current_geometry_collection;
   mapnik::feature_ptr m_current_feature;
   boost::optional<std::string> m_current_image_buffer;
 };

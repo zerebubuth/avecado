@@ -1,8 +1,12 @@
 ACLOCAL_AMFLAGS = -I m4
 AM_LDFLAGS = @BOOST_LDFLAGS@ @COVERAGE_LDFLAGS@
 AM_CPPFLAGS = \
-	-Iinclude -Imapnik-vector-tile/src \
-	@BOOST_CPPFLAGS@ @MAPNIK_CPPFLAGS@ @PROTOC_CPPFLAGS@ @LIBCURL_CFLAGS@
+	-Iinclude -Imapnik-vector-tile/src -Ideps/protozero/include \
+	@BOOST_CPPFLAGS@ @MAPNIK_CPPFLAGS@ @PROTOC_CPPFLAGS@ @LIBCURL_CFLAGS@ \
+	-DCLIPPER_INTPOINT_IMPL='mapnik::geometry::point<cInt>' \
+	-DCLIPPER_PATH_IMPL='mapnik::geometry::line_string<cInt>' \
+	-DCLIPPER_PATHS_IMPL='mapnik::geometry::multi_line_string<cInt>' \
+	-DCLIPPER_IMPL_INCLUDE='<mapnik/geometry.hpp>'
 AM_CXXFLAGS = @COVERAGE_CXXFLAGS@
 
 if HAVE_SQLITE3
@@ -45,16 +49,26 @@ noinst_LTLIBRARIES = liblogging.la
 
 BUILT_SOURCES = \
 	include/vector_tile.pb.h \
-	src/vector_tile.pb.cc
+	src/vector_tile.pb.cc \
+	include/clipper.hpp \
+	src/clipper.cpp
 
 CLEANFILES = \
 	include/vector_tile.pb.h \
-	src/vector_tile.pb.cc
+	src/vector_tile.pb.cc \
+	include/clipper.hpp \
+	src/clipper.cpp
 
 src/vector_tile.pb.cc: include/vector_tile.pb.h
 
 include/vector_tile.pb.h: mapnik-vector-tile/proto/vector_tile.proto
 	@PROTOC_BIN@ -Imapnik-vector-tile/proto --cpp_out=src $< && mv src/vector_tile.pb.h include/
+
+src/clipper.cpp: deps/clipper/cpp/clipper.hpp deps/clipper/cpp/clipper.hpp deps/clipper/cpp/fix_members.sh
+	cp $^ src/ && bash src/fix_members.sh
+
+include/clipper.hpp: src/clipper.cpp
+	mv src/clipper.hpp $@
 
 lib_LTLIBRARIES = libavecado.la libavecado_server.la
 
@@ -80,7 +94,8 @@ libavecado_la_SOURCES = \
 	src/util_tile.cpp
 
 nodist_libavecado_la_SOURCES = \
-	src/vector_tile.pb.cc
+	src/vector_tile.pb.cc \
+	src/clipper.cpp
 
 libavecado_la_LIBADD = @MAPNIK_LIBS@ -lmapnik-json @PROTOC_LIBS@ @BOOST_PROGRAM_OPTIONS_LIB@ @BOOST_IOSTREAMS_LIB@ @BOOST_DATE_TIME_LIB@ @LIBCURL_LIBS@
 
