@@ -70,3 +70,6 @@ coverage/
 include/clipper.hpp
 include/clipper.cpp
 src/fix_members.sh
+
+# vagrant stuff
+.vagrant/
